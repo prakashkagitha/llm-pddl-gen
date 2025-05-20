@@ -1,0 +1,259 @@
+// ===== DOMAIN ====
+domain:                     /\(define\s+/ /\(domain\s+/ NAME ")" \
+                                require_def? \
+                                types_def? \
+                                constants_def? \
+                                predicates_def? \
+                                functions_def? \
+                                constraints? \
+                                structure_def* ")"
+
+require_def:                "(:requirements" REQUIRE_KEY+ ")"
+
+// :typing
+types_def:                  "(:types" typed_list{NAME} ")"
+constants_def:              "(:constants" typed_list{NAME} ")"
+
+predicates_def:             "(:predicates" atomic_formula_skeleton+ ")"
+atomic_formula_skeleton:    "(" predicate typed_list{variable} ")"
+predicate:                  NAME
+variable:                   "?" NAME
+
+atomic_function_skeleton:   "(" function_symbol typed_list{variable} ")"
+function_symbol:            NAME
+// :fluents
+functions_def:              "(:functions" function_typed_list{atomic_function_skeleton} ")"
+function_typed_list{x}:     (x+ "-" function_type | x+)*
+function_type:              NUMBER  // :numeric-fluents
+                            | type  // :typing + :object-fluents
+
+?structure_def:             action_def
+                            | durative_action_def  // :durative-actions
+                            | derived_def          // :derived-predicates
+
+typed_list{x}:              x*
+                            | x+ "-" type typed_list{x}  // :typing
+primitive_type:             NAME | "object"
+type:                       /\(either\s+/ primitive_type+ ")"
+                            | primitive_type
+?empty_or{x}:               "()" | x
+
+action_def:                 "(:action" action_symbol ":parameters" "(" typed_list{variable} ")" action_def_body ")"
+action_symbol:              NAME
+action_def_body:            [":precondition" empty_or{pre_gd}] [":effect" empty_or{effect}]
+
+// this section only works with ambiguity-aware parsers, e.g. Earley
+// ?pre_gd:                    pref_gd
+//                             | /\(and\s+/ pre_gd* ")"
+//                             | /\(forall\s+/ "(" typed_list{variable} ")" pre_gd ")"  // :universal-preconditions
+// ?pref_gd:                   /\(preference\s+/ [pref_name] gd ")"  // :preferences
+//                             | gd
+// pref_name:                  NAME
+// end Earley
+
+// this LALR(1) simplification simplifies the preferences construct slightly -- this grammar disallows
+// ``(and (preference ...) (preference ...))``, but allows ``(preference (and ... ...))``
+?pre_gd:                    pref_gd
+?pref_gd:                   /\(preference\s+/ [pref_name] gd ")"  // :preferences
+                            | gd
+pref_name:                  NAME
+// end LALR(1)
+
+
+// LALR(1) simplification: assume we have :negative-preconditions
+gd:                         literal{term}  // :negative-preconditions
+                            | /\(and\s+/ gd* ")"
+                            | /\(or\s+/ gd* ")"  // :disjunctive-preconditions
+                            | /\(not\s+/ WS gd ")"  // :disjunctive-preconditions
+                            | /\(imply\s+/ gd gd ")"  // :disjunctive-preconditions
+                            | /\(exists\s+/ "(" typed_list{variable} ")" gd ")"  // :existential-preconditions
+                            | /\(forall\s+/ "(" typed_list{variable} ")" gd ")"  // :universal-preconditions
+                            | f_comp  // :numeric-fluents
+f_comp:                     "(" BINARY_COMP f_exp f_exp ")"
+literal{t}:                 atomic_formula{t}
+                            | /\(not\s+/ atomic_formula{t} ")"
+atomic_formula{t}:          "(" predicate t* ")"
+                            | "(=" t t ")"  // :equality
+
+?term:                      NAME
+                            | variable
+                            | function_term  // :object-fluents
+
+function_term:              "(" function_symbol term* ")"  // :object-fluents
+f_exp:                      NUMBER
+                            | "(" BINARY_OP f_exp f_exp ")"  // :numeric-fluents
+                            | "(" MULTI_OP f_exp f_exp+ ")"  // :numeric-fluents
+                            | /\(-\s+/ f_exp ")"  // :numeric-fluents
+                            | f_head  // :numeric-fluents
+f_head:                     "(" function_symbol term* ")"
+                            | function_symbol
+
+?effect:                    /\(and\s+/ c_effect* ")"
+                            | c_effect
+?c_effect:                  /\(forall\s+/ "(" typed_list{variable} ")" effect ")"  // :conditional-effects
+                            | /\(when\s+/ gd cond_effect ")"  // :conditional-effects
+                            | p_effect
+?p_effect:                  /\(not\s+/ atomic_formula{term} ")"
+                            | atomic_formula{term}
+                            | "(" ASSIGN_OP f_head f_exp ")"  // :numeric-fluents
+                            | /\(assign\s+/ function_term term ")"  // :object-fluents
+                            | /\(assign\s+/ function_term "undefined" ")"  // :object-fluents
+?cond_effect:               /\(and\s+/ p_effect* ")"
+                            | p_effect
+ASSIGN_OP:                  "assign" | "scale-up" | "scale-down" | "increase" | "decrease"
+
+durative_action_def:        "(:durative-action" da_symbol \
+                                ":parameters" "(" typed_list{variable} ")" \
+                                da_def_body ")"
+da_symbol:                  NAME
+da_def_body:                ":duration" duration_constraint \
+                                ":condition" empty_or{da_gd} \
+                                ":effect" empty_or{da_effect}
+da_gd:                      pref_timed_gd
+                            | /\(and\s+/ da_gd* ")"
+                            | /\(forall\s+/ "(" typed_list{variable} ")" da_gd ")"  // :universal-preconditions
+pref_timed_gd:              timed_gd
+                            | /\(preference\s+/ [pref_name] timed_gd ")"  // :preferences
+timed_gd:                   /\(at\s+/ TIME_SPECIFIER gd ")"
+                            | /\(over\s+/ INTERVAL gd ")"
+TIME_SPECIFIER:             "start" | "end"
+INTERVAL:                   "all"
+duration_constraint:        /\(and\s+/ simple_duration_constraint+ ")"  // :duration−inequalities
+                            | "()"
+                            | simple_duration_constraint
+simple_duration_constraint: "(" D_OP "?duration" d_value ")"
+                            | /\(at\s+/ TIME_SPECIFIER simple_duration_constraint ")"
+D_OP:                       "<="  // :duration−inequalities
+                            | ">="  // :duration−inequalities
+                            | "="
+d_value:                    f_exp  // :numeric-fluents
+da_effect:                  /\(and\s+/ da_effect* ")"
+                            | timed_effect
+                            | /\(forall\s+/ "(" typed_list{variable} ")" da_effect ")"  // :conditional−effects
+                            | /\(when\s+/ da_gd timed_effect ")"  // :conditional−effects
+timed_effect:               /\(at\s+/ TIME_SPECIFIER cond_effect ")"
+                            | /\(at\s+/ TIME_SPECIFIER f_assign_da ")"  // :numeric-fluents
+                            | "(" ASSIGN_OP_T f_head f_exp_t ")"  // :continuous−effects + :numeric-fluents
+f_assign_da:                "(" ASSIGN_OP f_head f_exp_da ")"
+f_exp_da:                   "(" BINARY_OP f_exp_da f_exp_da ")"
+                            | "(" MULTI_OP f_exp_da f_exp_da+ ")"
+                            | /\(-\s+/ f_exp_da ")"
+                            | "?duration"  // :duration−inequalities
+                            | f_exp
+ASSIGN_OP_T:                "increase" | "decrease"
+f_exp_t:                    "(*" f_exp "#t)"
+                            | "(*" "#t" f_exp ")"
+                            | "#t"
+derived_def:                "(:derived" atomic_formula_skeleton gd ")"
+
+REQUIRE_KEY:                ":strips"
+                            | ":typing"
+                            | ":negative-preconditions"
+                            | ":disjunctive-preconditions"
+                            | ":equality"
+                            | ":existential-preconditions"
+                            | ":universal-preconditions"
+                            | ":quantified-preconditions"
+                            | ":conditional-effects"
+                            | ":fluents"
+                            | ":numeric-fluents"
+                            | ":adl"
+                            | ":durative-actions"
+                            | ":duration-inequalities"
+                            | ":continuous-effects"
+                            | ":derived-predicates"
+                            | ":timed-initial-literals"
+                            | ":preferences"
+                            | ":constraints"
+                            | ":action-costs"
+
+// ===== PROBLEM =====
+problem:                    /\(define\s+/ /\(problem\s+/ NAME ")" \
+                                "(:domain" NAME ")" \
+                                [require_def] \
+                                [object_declaration] \
+                                init \
+                                goal \
+                                [constraints] \
+                                [metric_spec] ")"
+
+object_declaration:         "(:objects" typed_list{NAME} ")"
+init:                       "(:init" init_el* ")"
+init_el:                    literal{NAME}
+                            | /\(at\s+/ NUMBER literal{NAME} ")"  // :timed−initial−literals
+                            | "(=" basic_function_term NUMBER ")"  // :numeric-fluents
+                            | "(=" basic_function_term NAME ")"  // :object-fluents
+basic_function_term:        function_symbol
+                            | "(" function_symbol NAME* ")"
+goal:                       "(:goal" pre_gd ")"
+
+
+// this section only works with ambiguity-aware parsers, e.g. Earley
+// constraints:                "(:constraints" con_gd ")"  // :constraints (from domain)
+//                             | "(:constraints" pref_con_gd ")"  // :constraints (from problem)
+// pref_con_gd:                /\(and\s+/ pref_con_gd* ")"
+//                             | /\(forall\s+/ "(" typed_list{variable} ")" pref_con_gd ")"  // :universal−preconditions
+//                             | /\(preference\s+/ [pref_name] con_gd ")"  // :preferences
+//                             | con_gd
+// con_gd:                     /\(and\s+/ con_gd* ")"
+//                             | /\(forall\s+/ "(" typed_list{variable} ")" con_gd ")"
+//                             | /\(at end\s+/ gd ")"
+//                             | /\(always\s+/ gd ")"
+//                             | /\(sometime\s+/ gd ")"
+//                             | /\(within\s+/ NUMBER gd ")"
+//                             | /\(at-most-once\s+/ gd ")"
+//                             | /\(sometime-after\s+/ gd gd ")"
+//                             | /\(sometime-before\s+/ gd gd ")"
+//                             | /\(always-within\s+/ NUMBER gd gd ")"
+//                             | /\(hold-during\s+/ NUMBER NUMBER gd ")"
+//                             | /\(hold-after\s+/ NUMBER gd ")"
+// end Earley section
+
+// this LALR(1)-compatible section assumes that we have :preferences
+constraints:                "(:constraints" pref_con_gd ")"
+pref_con_gd:                /\(and\s+/ pref_con_gd* ")"
+                            | /\(forall\s+/ "(" typed_list{variable} ")" pref_con_gd ")"  // :universal−preconditions
+                            | /\(preference\s+/ [pref_name] con_gd ")"  // :preferences
+                            | con_gd
+con_gd:                     /\(at end\s+/ gd ")"
+                            | /\(always\s+/ gd ")"
+                            | /\(sometime\s+/ gd ")"
+                            | /\(within\s+/ NUMBER gd ")"
+                            | /\(at-most-once\s+/ gd ")"
+                            | /\(sometime-after\s+/ gd gd ")"
+                            | /\(sometime-before\s+/ gd gd ")"
+                            | /\(always-within\s+/ NUMBER gd gd ")"
+                            | /\(hold-during\s+/ NUMBER NUMBER gd ")"
+                            | /\(hold-after\s+/ NUMBER gd ")"
+// end LALR(1) section
+
+metric_spec:                "(:metric" OPTIMIZATION metric_f_exp ")"  // :numeric-fluents
+OPTIMIZATION:               "minimize" | "maximize"
+metric_f_exp:               "(" BINARY_OP metric_f_exp metric_f_exp ")"
+                            | "(" MULTI_OP metric_f_exp metric_f_exp+ ")"
+                            | /\(-\s+/ metric_f_exp ")"
+                            | NUMBER
+                            | "(" function_symbol NAME* ")"
+                            | function_symbol
+                            | "total-time"
+                            | /\(is-violated\s+/ pref_name ")"  // :preferences
+
+// terminals
+BINARY_OP:                  MULTI_OP | "-" | "/"
+MULTI_OP:                   "*" | "+"
+BINARY_COMP:                ">" | "<" | "=" | ">=" | "<="
+NAME:                       LETTER ANY_CHAR*
+LETTER:                     /[a-zA-Z]/
+ANY_CHAR:                   LETTER | DIGIT | "-" | "_"
+NUMBER:                     DIGIT+ [DECIMAL]
+DIGIT:                      /[0-9]/
+DECIMAL:                    "." DIGIT+
+
+// Lark
+COMMENT: ";;" /[^\n]/*
+NEWLINE: "\n"
+%import common.WS
+
+%ignore COMMENT
+%ignore WS
+%ignore NEWLINE
