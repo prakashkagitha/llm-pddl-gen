@@ -29,6 +29,7 @@ class ExperimentRunner:
             "pddl_knowledge":       "pddl_knowledge_inference.PDDLKnowledgeInference",
             "separate_pddl":        "separate_pddl_inference.SeparatePDDLInference",
             "summary_pddl":         "summary_pddl_inference.SummaryPDDLInference",
+            "summary_revision_solver_val": "summary_revision_solver_val_inference.SummaryRevisionSolverValInference",
             "pass_at_n":            "passn_inference.PassNInference",
             "always_revise":        "always_revise_inference.AlwaysReviseInference",
             "revision_solver":      "revision_solver_inference.RevisionSolverInference",

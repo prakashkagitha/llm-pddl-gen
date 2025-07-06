@@ -47,9 +47,10 @@ pipelines:
   # - baseline_pddl
   # - separate_pddl
   # - summary_pddl
+  - summary_revision_solver_val
   # - pass_at_n
   # - revision_solver
-  - revision_solver_val
+  # - revision_solver_val
   # - pypddl
   # - constrained_decoding
 
