@@ -1,77 +1,140 @@
-import requests
+"""
+Dual-BFWS-FFparser solver wrapper.
+
+• offline=True  (default)  → run `planutils run dual-bfws-ffparser`
+  with a hard time-limit; success = non-empty plan file.
+
+• online=True              → fallback to planning.domains REST API
+  (behaviour unchanged from the original implementation).
+"""
+
+from __future__ import annotations
+
+import os
+import signal
+import subprocess
 import time
+from pathlib import Path
+from typing import Optional, Tuple
+
+import requests
+
 from .solver_interface import SolverInterface
 
+
 class DualBFWSSolver(SolverInterface):
-    def __init__(self, solver="dual-bfws-ffparser"):
+    # ------------------------------------------------------------------ #
+    def __init__(
+        self,
+        solver: str = "dual-bfws-ffparser",
+        *,
+        online: bool = False,
+        workdir: Optional[str | Path] = None,
+        plan_filename: str = "plan",
+        time_limit: int = 5,          # seconds (adjust as needed)
+    ):
         self.solver = solver
-        self.base_url = "https://solver.planning.domains:5001"
+        self.online = online
+        self.workdir = Path(workdir) if workdir else Path.cwd()
+        self.plan_path = self.workdir / plan_filename
+        self.time_limit = time_limit
 
-    def solve(self, domain_file_path, problem_file_path):
-        with open(domain_file_path, "r") as f:
-            domain_file = f.read()
-        with open(problem_file_path, "r") as f:
-            problem_file = f.read()
-        attempts = 3
-        for i in range(attempts):
+        if self.online:
+            self.base_url = "https://solver.planning.domains:5001"
+
+    # ------------------------------------------------------------------ #
+    #  public API required by SolverInterface                            #
+    # ------------------------------------------------------------------ #
+    def solve(self, domain_file: str, problem_file: str):
+        plan, _ = self.solve_with_error(domain_file, problem_file)
+        return plan
+
+    def solve_with_error(
+        self, domain_file: str, problem_file: str
+    ) -> Tuple[Optional[str], str]:
+        if self.online:
+            return self._solve_online(domain_file, problem_file)
+        return self._solve_offline(domain_file, problem_file)
+
+    # ------------------------------------------------------------------ #
+    #  OFFLINE path: planutils                                           #
+    # ------------------------------------------------------------------ #
+    def _solve_offline(
+        self, domain_file: str, problem_file: str
+    ) -> Tuple[Optional[str], str]:
+        self.plan_path.unlink(missing_ok=True)
+
+        cmd = ["planutils", "run", self.solver, domain_file, problem_file]
+        proc = subprocess.Popen(
+            cmd,
+            cwd=self.workdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,      # own process group
+        )
+
+        try:
+            stdout, stderr = proc.communicate(timeout=self.time_limit)
+        except subprocess.TimeoutExpired:
+            # ---------- hard timeout ----------
+            os.killpg(proc.pid, signal.SIGTERM)
             try:
-                plan_found, result = self._send_job(domain_file, problem_file)
-                if plan_found:
-                    if isinstance(result, dict) and "plan" in result:
-                        return result["plan"]
-                    return result
-            except:
-                if i<attempts:
-                    continue
-                else:
-                    raise
-            break
-        return None
+                stdout, stderr = proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid, signal.SIGKILL)
+                stdout, stderr = proc.communicate()
 
-    def solve_with_error(self, domain_file_path, problem_file_path):
-        with open(domain_file_path, "r") as f:
-            domain_file = f.read()
-        with open(problem_file_path, "r") as f:
-            problem_file = f.read()
-        attempts = 3
-        for i in range(attempts):
+        # ---------- success? ----------
+        if self.plan_path.exists():
+            plan_txt = self.plan_path.read_text(encoding="utf-8").strip()
+            self.plan_path.unlink(missing_ok=True)
+            if plan_txt:                       # non-empty → success
+                return plan_txt, ""
+            # empty file counts as failure → fall through
+
+        err_msg = ((stderr or "") + "\n" + (stdout or "")).strip() or "plan not found"
+        return None, err_msg
+
+    # ------------------------------------------------------------------ #
+    #  ONLINE path: planning.domains REST API                            #
+    # ------------------------------------------------------------------ #
+    def _solve_online(
+        self, domain_file: str, problem_file: str
+    ) -> Tuple[Optional[str], str]:
+        with open(domain_file) as f:
+            dom_txt = f.read()
+        with open(problem_file) as f:
+            prob_txt = f.read()
+
+        req = {"domain": dom_txt, "problem": prob_txt}
+        try:
+            job = requests.post(
+                f"{self.base_url}/package/{self.solver}/solve", json=req, timeout=10
+            ).json()
+        except requests.RequestException as exc:
+            return None, f"submit failed: {exc}"
+
+        result_url = self.base_url + job["result"]
+        while True:
             try:
-                plan_found, result = self._send_job(domain_file, problem_file)
-                if plan_found:
-                    if isinstance(result, dict) and "plan" in result:
-                        return result["plan"], ""
-                    return result, ""
-                else:
-                    return None, result
-            except:
-                if i<attempts:
-                    continue
-                else:
-                    raise
-            break
-        print("Timeout **** Solver is not responding!")
-        return None, "timeout"
-
-    def _send_job(self, domain_file, problem_file):
-        req_body = {"domain": domain_file, "problem": problem_file}
-        solve_request_url = requests.post(f"{self.base_url}/package/{self.solver}/solve", json=req_body).json()
-        celery_result = requests.post(self.base_url + solve_request_url['result'])
-        while celery_result.json().get("status", "") == 'PENDING':
-            celery_result = requests.post(self.base_url + solve_request_url['result'])
+                res = requests.post(result_url, timeout=10).json()
+            except requests.RequestException as exc:
+                return None, f"poll failed: {exc}"
+            if res.get("status") != "PENDING":
+                break
             time.sleep(0.5)
-        result = celery_result.json()['result']
-        if "Error" in celery_result.json().keys():
-            return False, "timeout"
-        if self.solver == "dual-bfws-ffparser":
-            if result['output'] == {'plan': ''}:
-                if not result['stderr']:
-                    if any(kw in result['stdout'] for kw in ["NOTFOUND", "No plan", "unknown", "undeclared", "declared twice", "check input files", "does not match", "timeout"]):
-                        return False, result['stdout']
-                    else:
-                        return True, result['stdout']
-                else:
-                    return False, result['stderr']
-            else:
-                return True, result['output']
-        else:
-            return True, result
+
+        if "Error" in res:
+            return None, "timeout"
+
+        result = res["result"]
+        # planning.domains’ dual-bfws response quirks
+        if self.solver == "dual-bfws-ffparser" and result.get("output") == {"plan": ""}:
+            msg = result["stderr"] or result["stdout"]
+            return None, msg or "plan not found"
+
+        # success
+        out = result["output"]
+        plan = out["plan"] if isinstance(out, dict) and "plan" in out else out
+        return plan, ""

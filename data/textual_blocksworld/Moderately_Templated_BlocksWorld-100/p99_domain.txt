@@ -17,3 +17,9 @@ I am playing with a set of blocks where I need to arrange the blocks into stacks
    I can only stack a block on top of another block if the block onto which I am stacking the block is clear.
    Once I put down or stack a block, my hand becomes empty.
    Once you stack a block on top of a second block, the second block is no longer clear.
+
+;; Action Heads
+pickup      (?b          - block)
+unstack     (?b ?under   - block)
+putdown     (?b          - block)
+stack       (?b ?under   - block)

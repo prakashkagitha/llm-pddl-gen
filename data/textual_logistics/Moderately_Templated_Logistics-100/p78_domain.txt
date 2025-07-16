@@ -15,3 +15,11 @@ I have the following restrictions on my actions:
     I can only drive a truck between locations if the truck is at the first location and both the first and second locations are in the same city. Once I drive a truck, the truck is in the second city and no longer in the first city.
     I can only fly an airplane between two airports and the airplane is at the first airport.
     Once I fly an airplane, the airplane is at the second airport and no longer at the first airport.
+
+;; Action Heads
+load-truck        (?obj - package   ?truck - truck     ?loc - location)
+load-airplane     (?obj - package   ?airplane - airplane  ?loc - airport)
+unload-truck      (?obj - package   ?truck - truck     ?loc - location)
+unload-airplane   (?obj - package   ?airplane - airplane  ?loc - airport)
+drive-truck       (?truck - truck   ?loc-from - location  ?loc-to - location  ?city - city)
+fly-airplane      (?airplane - airplane  ?loc-from - airport  ?loc-to - airport)

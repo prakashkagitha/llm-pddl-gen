@@ -29,7 +29,7 @@ from typing import Tuple
 class Validator:
     def __init__(self) -> None:
         # Path to the compiled VAL binary (edit if your layout differs)
-        self.validate_executable = "../VAL/build/linux64/Release/bin/Validate"
+        self.validate_executable = "../../VAL/build/linux64/Release/bin/Validate"
 
     # ------------------------------------------------------------------ #
     #  Public API                                                        #

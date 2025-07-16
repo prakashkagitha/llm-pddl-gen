@@ -14,11 +14,12 @@ Key additions
 """
 from __future__ import annotations
 
-import os, re, gc, itertools
+import os, re, gc, itertools, random
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
 import torch
+import numpy as np
 from vllm import LLM, SamplingParams
 
 from src.solver.dual_bfws_solver import DualBFWSSolver
@@ -36,6 +37,7 @@ class BaseInference(ABC):
         data_type: str,
         *,
         tensor_parallel: int = 1,
+        seed: int = 42,
         **_ignored,
     ):
         self.model = model
@@ -43,16 +45,46 @@ class BaseInference(ABC):
         self.prompt_version = prompt_version
         self.domain = domain
         self.data_type = data_type
+        self.seed = seed
+
+        # Set seeds for reproducibility
+        self._set_seeds(seed)
 
         self.llm = LLM(
-            model=model, max_model_len=30_000, tensor_parallel_size=tensor_parallel
+            model=model, 
+            max_model_len=30_000, 
+            tensor_parallel_size=tensor_parallel,
+            seed=seed  # vLLM seed parameter
         )
         self.sampler = SamplingParams(
-            temperature=temperature, top_p=0.95, max_tokens=20_000
+            temperature=temperature, 
+            top_p=0.95, 
+            max_tokens=20_000,
+            seed=seed  # Sampling seed
         )
 
         self._solver = DualBFWSSolver()
         self._validator = Validator()
+
+    def _set_seeds(self, seed: int):
+        """Set seeds for all random number generators."""
+        # Python random
+        random.seed(seed)
+        
+        # NumPy
+        np.random.seed(seed)
+        
+        # PyTorch
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        
+        # # Make PyTorch deterministic (may impact performance)
+        # torch.backends.cudnn.deterministic = True
+        # torch.backends.cudnn.benchmark = False
+        
+        # Set environment variable for additional reproducibility
+        os.environ['PYTHONHASHSEED'] = str(seed)
 
     # ------------------------------------------------------------------ #
     #  Every pipeline must at least implement *get_prompt*               #
@@ -75,7 +107,11 @@ class BaseInference(ABC):
         """pass@N – *n* answers per problem, single vLLM call."""
         prm = [self.get_prompt(pid) for pid in problem_ids]
         sp = SamplingParams(
-            temperature=self.temperature, top_p=0.95, max_tokens=20_000, n=n
+            temperature=self.temperature, 
+            top_p=0.95, 
+            max_tokens=20_000, 
+            n=n,
+            seed=self.seed  # Use instance seed
         )
         outs = self.llm.generate(prm, sp)
         return [
@@ -114,17 +150,37 @@ class BaseInference(ABC):
     def _save_candidate(
         self, out_root: str, pid: str, idx: int, cand: Dict[str, str]
     ) -> Tuple[str, str]:
+        """
+        Save all artefacts for a single candidate.
+
+        • df  → domain.pddl
+        • pf  → problem.pddl
+        • raw → raw.txt
+        • any other key  → <key>.txt
+        """
         cdir = os.path.join(out_root, pid, f"cand_{idx:02}")
         os.makedirs(cdir, exist_ok=True)
-        with open(os.path.join(cdir, "domain.pddl"), "w") as f: f.write(cand["df"])
-        with open(os.path.join(cdir, "problem.pddl"), "w") as f: f.write(cand["pf"])
-        with open(os.path.join(cdir, "raw.txt"), "w") as f: f.write(cand["raw"])
-        if cand.get("summary"):
-            with open(os.path.join(cdir, "summary.txt"), "w") as f: f.write(cand["summary"])
-        return (
-            os.path.join(cdir, "domain.pddl"),
-            os.path.join(cdir, "problem.pddl"),
-        )
+
+        # always present
+        dom_path = os.path.join(cdir, "domain.pddl")
+        prob_path = os.path.join(cdir, "problem.pddl")
+        with open(dom_path, "w") as f:
+            f.write(cand.get("df", ""))
+        with open(prob_path, "w") as f:
+            f.write(cand.get("pf", ""))
+        with open(os.path.join(cdir, "raw.txt"), "w") as f:
+            f.write(cand.get("raw", ""))
+
+        # everything else → <key>.txt
+        for k, v in cand.items():
+            if k in {"df", "pf", "raw"}:
+                continue
+            fname = f"{k}.txt"
+            with open(os.path.join(cdir, fname), "w") as f:
+                f.write(str(v))
+
+        return dom_path, prob_path
+
 
     # ---------------- candidate-level evaluation (unchanged) ----------- #
     def _check_candidate(
