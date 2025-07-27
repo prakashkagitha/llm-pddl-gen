@@ -30,9 +30,10 @@ class RevisionSolverInference(PDDLKnowledgeInference):
         *a,
         k: int = 8,
         max_rounds: int = 3,
+        llm=None,
         **kw,
     ):
-        super().__init__(*a, **kw)
+        super().__init__(*a, **kw, llm=llm)
         self.k = k
         self.r = max_rounds
         # temp dir only for feedback collection (final artefacts are saved

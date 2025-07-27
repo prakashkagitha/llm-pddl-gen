@@ -2,17 +2,18 @@
 # Global experiment configuration
 # ------------------------------------------------------------------------
 llm_models:
-  - "Qwen/Qwen3-32B"
+  # - "Qwen/Qwen3-32B"
+  - "Qwen/Qwen3-8B"
 
 domains:               # folders inside  data/textual_<domain>
   # - blocksworld
   - logistics
-  - barman
+  # - barman
 
 data_types:            # make sure of same length as domains
-  # - Moderately_Templated_BlocksWorld-100
-  - Heavily_Templated_Logistics-100
-  - Heavily_Templated_Barman-100
+  - Moderately_Templated_BlocksWorld-100
+  # - Heavily_Templated_Logistics-100
+  # - Heavily_Templated_Barman-100
 
 temperatures: [0.4]
 
@@ -36,10 +37,11 @@ tensor_parallel: 2             # forwarded to vLLM
 #   constrained_decoding  – CFG decoding with *outlines*
 #   best_of_all           – pass@N + summary + solver + VAL
 pipelines:
-  - pddl_knowledge
+  # - pddl_knowledge
   - baseline_pddl
   # - separate_pddl
   # - summary_pddl
+  # - summary_revision_solver_val
   # - pass_at_n
 
 prompt_versions:   # file-prefixes looked-up under ./prompts/

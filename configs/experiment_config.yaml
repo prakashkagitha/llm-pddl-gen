@@ -1,25 +1,25 @@
 # ------------------------------------------------------------------------
 # Global experiment configuration
 # ------------------------------------------------------------------------
-seeds: [42, 43, 44]  # for reproducibility
+seeds: [42]  # for reproducibility
 
 llm_models:
-  - "Qwen/Qwen3-32B"
-  # - "Qwen/Qwen3-8B"
+  # - "Qwen/Qwen3-32B"
+  - "Qwen/Qwen3-8B"
   # - "Qwen/Qwen2.5-32B-Instruct"
   # - "google/gemma-3-27b-it"
   # - "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
   # - "meta-llama/Llama-4-Scout-17B-16E-Instruct"
 
 domains:               # folders inside  data/textual_<domain>
-  - barman
-  - blocksworld
+  # - barman
+  # - blocksworld
   - logistics
  
 
 data_types:            # make sure of same length as domains
-  - Moderately_Templated_Barman-100
-  - Moderately_Templated_BlocksWorld-100
+  # - Moderately_Templated_Barman-100
+  # - Moderately_Templated_BlocksWorld-100
   - Moderately_Templated_Logistics-100
 
   # - Natural_BlocksWorld-100
@@ -34,7 +34,7 @@ temperatures: [0.4]
 num_pass_attempts: 1        # K for pass@K
 num_revision_rounds: 3
 pass_at_n: 4                    # used only by PassNPipeline
-tensor_parallel: 2               # forwarded to vLLM
+tensor_parallel: 1               # forwarded to vLLM
 
 # Available options:
 #   baseline_pddl         – no knowledge-prompt prefix
@@ -54,17 +54,18 @@ pipelines:
   # - baseline_pddl
   # - separate_pddl
   # - summary_pddl
-  - pass_at_n
+  # - summary_revision_solver_val
+  # - pass_at_n
   # - revision_solver
   # - revision_solver_val
-  # - pypddl
+  - pypddl
   # - constrained_decoding
   # - pddlwithpy2pddl
   # - pddlwithpythonenv
 
 prompt_versions:   # file-prefixes looked-up under ./prompts/
-  - pddl_instruction
-  # - pypddl_instruction
+  # - pddl_instruction
+  - pypddl_instruction
 
 # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,] [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
 problems: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]

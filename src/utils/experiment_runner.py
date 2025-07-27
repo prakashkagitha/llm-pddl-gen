@@ -9,6 +9,7 @@ import os
 import pandas as pd
 from importlib import import_module
 from typing import Dict, List
+from vllm import LLM
 
 from src.utils.file_manager import get_output_path
 from src.utils.logger import get_logger
@@ -31,6 +32,7 @@ class ExperimentRunner:
             "pddl_knowledge":       "pddl_knowledge_inference.PDDLKnowledgeInference",
             "separate_pddl":        "separate_pddl_inference.SeparatePDDLInference",
             "summary_pddl":         "summary_pddl_inference.SummaryPDDLInference",
+            "summary_revision_solver_val": "summary_revision_solver_val_inference.SummaryRevisionSolverValInference",
             "pass_at_n":            "passn_inference.PassNInference",
             "always_revise":        "always_revise_inference.AlwaysReviseInference",
             "revision_solver":      "revision_solver_inference.RevisionSolverInference",
@@ -63,6 +65,13 @@ class ExperimentRunner:
                             run_out_dir = os.path.join(out_dir, f"run_{run_idx + 1}_seed_{seed}")
                             os.makedirs(run_out_dir, exist_ok=True)
 
+                            shared_llm = LLM(
+                            model=model,
+                            max_model_len=30000,
+                            tensor_parallel_size=self.cfg.get("tensor_parallel", 1),
+                            seed=seed
+                            )
+
                             PipelineCls = self._resolve_pipeline(pipe)
                             pipeline = PipelineCls(
                                 model, temp, self.cfg["prompt_versions"][0],
@@ -72,6 +81,7 @@ class ExperimentRunner:
                                 k=self.cfg.get("num_pass_attempts", 16),
                                 max_rounds=self.cfg.get("num_revision_rounds", 4),
                                 seed=seed,  # Pass seed to pipeline
+                                llm=shared_llm
                             )
 
                             problems = [f"p{p:02}" for p in self.cfg["problems"]]

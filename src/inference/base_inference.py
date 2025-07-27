@@ -38,6 +38,7 @@ class BaseInference(ABC):
         *,
         tensor_parallel: int = 1,
         seed: int = 42,
+        llm=None,
         **_ignored,
     ):
         self.model = model
@@ -50,12 +51,15 @@ class BaseInference(ABC):
         # Set seeds for reproducibility
         self._set_seeds(seed)
 
-        self.llm = LLM(
-            model=model, 
-            max_model_len=30_000, 
-            tensor_parallel_size=tensor_parallel,
-            seed=seed  # vLLM seed parameter
-        )
+        if llm is not None:
+            self.llm = llm
+        else:
+            self.llm = LLM(
+                model=model, 
+                max_model_len=30_000, 
+                tensor_parallel_size=tensor_parallel,
+                seed=seed  # vLLM seed parameter
+            )
         self.sampler = SamplingParams(
             temperature=temperature, 
             top_p=0.95, 
