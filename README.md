@@ -2,7 +2,7 @@
 
 Paper: [https://arxiv.org/abs/2505.14763](https://arxiv.org/abs/2505.14763)
 
-Prabhu Prakash Kagitha (Drexel University), Andrew Zhu (University of Pennsylvania), Harry "Li" Zhang (Drexel Univeristy)
+Prabhu P. Kagitha, Bo Sun, Ishan Desai, Andrew Zhu, Cassie Huang, Manling Li, Ziyang Li, Li Zhang
 
 This repository is a minimal, complete snapshot of the code used in the paper. It pulls the core experiment runner, prompts, and inference/solver/utility/validation modules from the full `planning-llms` codebase while excluding caches and large experiment outputs.
 
@@ -36,9 +36,9 @@ This repo intentionally omits generated outputs and caches; see `.gitignore` for
 ## Citation
 
 ```
-@misc{kagitha2025addressingchallengesplanninglanguage,
-      title={Addressing the Challenges of Planning Language Generation}, 
-      author={Prabhu Prakash Kagitha and Andrew Zhu and Li Zhang},
+@misc{kagitha2025unifyinginference,
+      title={Unifying Inference-Time Planning Language Generation},
+      author={Prabhu P. Kagitha and Bo Sun and Ishan Desai and Andrew Zhu and Cassie Huang and Manling Li and Ziyang Li and Li Zhang},
       year={2025},
       eprint={2505.14763},
       archivePrefix={arXiv},
