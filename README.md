@@ -1,4 +1,4 @@
-# Addressing the Challenges of Planning Language Generation (Minimal)
+# Unifying Inference-Time Planning Language Generation
 
 Paper: [https://arxiv.org/abs/2505.14763](https://arxiv.org/abs/2505.14763)
 
