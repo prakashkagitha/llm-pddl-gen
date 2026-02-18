@@ -1,0 +1,171 @@
+JSON-PDDL is the structured intermediate representation for this pipeline. You must emit a single JSON document that can be deterministically translated back into PDDL. Follow these requirements precisely—anything omitted cannot be recovered downstream.
+
+Overall guidance:
+- Wrap the complete JSON document inside `<json_spec>…</json_spec>`.
+- The top-level structure must be an object with exactly two keys: `"domain"` and `"problem"`.
+- Preserve symbol alignment between the natural-language source, the JSON, and the eventual PDDL. Every name, type, predicate, action, constant, and object must match.
+- Use arrays to preserve ordering where the PDDL requires it (requirements, parameters, preconditions, effects, goals, metric arguments, etc.).
+- Do not include comments or explanatory prose inside the JSON. All explanatory text belongs in this instruction file only.
+- Respect PDDL identifier rules. Every symbol (types, predicates, actions, constants, objects, parameters) must begin with a lowercase letter and may only contain letters, digits, and hyphens afterward. Never emit bare numbers like `"1"`—rewrite them as alphabetic identifiers such as `"block-1"` or `"room1"`.
+- Domain-level constants are not supported. Any static symbols must appear in the problem `objects` section instead, with required invariants encoded as facts in `init`.
+
+Domain object requirements:
+- `name`: string – canonical PDDL domain name.
+- `requirements`: ordered list of requirement keywords (each with a leading `:` or bare keyword).
+- `types`: list of objects with `name` and optional `parent` (default `object`). Subtyping must mirror PDDL typing.
+- `functions`: list of objects with `name`, ordered `parameters`, and `return` type (default `"number"`). Omit or set to `[]` if no numeric fluents exist.
+- `predicates`: list of objects with `name` and ordered `parameters`. Each parameter object must include `name` and `type`.
+- `actions`: list of objects. Each action requires:
+  * `name`: action identifier.
+  * `parameters`: ordered list of `{ "name": str, "type": str }`.
+  * `preconditions`: object with optional `positive`, `negative`, and `universal` lists (each list contains literal objects). Empty collections default to `[]`.
+  * `effects`: object with optional `add`, `delete`, `conditional`, and `assign` lists. Conditional effects require `condition`, plus nested `add` / `delete` / `assign` lists.
+  * Omit unused sections rather than leaving `null`.
+- Any additional metadata must live under an object `metadata` (use `{}` when unused).
+
+Problem object requirements:
+- `name`: string – problem identifier.
+- `domain`: string – must match `domain.name`.
+- `objects`: dictionary keyed by type name, each value a list of object identifiers (order matters). Each identifier must obey the lowercase-start rule above and keep hyphenated forms that begin with a letter.
+- `init`: list of state entries. Positive facts use `{ "predicate": str, "arguments": [...] , "value": true }`. Numeric initialisations use `{ "function": str, "arguments": [...], "value": number }`. Do not encode negative information in `init`; omit facts instead of writing `value: false` or a negated predicate.
+- `goal`: object with `structure` (e.g., `"conjunctive"`, `"disjunctive"`, `"negated"`), `conditions` (list of literal objects), and optional `numeric` constraints.
+- `metric`: optional object with `type` (e.g., `"minimize"`) and `expression` (function or composed expression). Only include a metric when the source explicitly calls for optimisation. If you reference `total-cost`, you must also add `:action-costs` to `domain.requirements` and declare a zero-arity numeric function named `"total-cost"` under `domain.functions`.
+- `constraints`: list capturing additional problem-level constraints (use `[]` if absent).
+
+Literal format:
+- Each literal object must specify `predicate` and an ordered list of `arguments`. Arguments refer to in-scope parameter or object names (omit leading `?` – the converter inserts it automatically).
+- For numeric comparisons inside goals or effects, represent them as `{ "op": "...", "function": "...", "arguments": [...], "value": ... }` or nested expression objects.
+
+Numeric assignments:
+- Represent assignments and updates in effects using `{ "op": "assign|increase|decrease|scale-up|scale-down", "function": str, "arguments": [...], "value": number|expression }`.
+
+Example JSON-PDDL (replace identifiers with the concrete ones from the task; do not add text inside the JSON):
+{
+  "domain": {
+    "name": "domain_identifier",
+    "requirements": [":pddl_requirement_keyword"],
+    "types": [
+      {"name": "type_identifier", "parent": "type_identifier_or_object"}
+    ],
+    "functions": [
+      {
+        "name": "function_identifier",
+        "parameters": [
+          {"name": "variable_identifier", "type": "type_identifier"}
+        ],
+        "return": "number"
+      }
+    ],
+    "predicates": [
+      {
+        "name": "predicate_identifier",
+        "parameters": [
+          {"name": "variable_identifier", "type": "type_identifier"}
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "name": "action_identifier",
+        "parameters": [
+          {"name": "variable_identifier", "type": "type_identifier"}
+        ],
+        "preconditions": {
+          "positive": [
+            {"predicate": "predicate_identifier", "arguments": ["variable_identifier"]}
+          ],
+          "negative": [
+            {"predicate": "predicate_identifier", "arguments": ["variable_identifier"]}
+          ],
+          "universal": [
+            {
+              "variables": [
+                {"name": "variable_identifier", "type": "type_identifier"}
+              ],
+              "positive": [],
+              "negative": []
+            }
+          ]
+        },
+        "effects": {
+          "add": [
+            {"predicate": "predicate_identifier", "arguments": ["variable_identifier"]}
+          ],
+          "delete": [
+            {"predicate": "predicate_identifier", "arguments": ["variable_identifier"]}
+          ],
+          "conditional": [
+            {
+              "condition": {
+                "positive": [
+                  {"predicate": "predicate_identifier", "arguments": ["variable_identifier"]}
+                ],
+                "negative": []
+              },
+              "add": [
+                {"predicate": "predicate_identifier", "arguments": ["variable_identifier"]}
+              ],
+              "delete": [],
+              "assign": []
+            }
+          ],
+          "assign": [
+            {
+              "op": "increase",
+              "function": "function_identifier",
+              "arguments": ["variable_identifier"],
+              "value": 1
+            }
+          ]
+        },
+        "metadata": {}
+      }
+    ],
+    "metadata": {}
+  },
+  "problem": {
+    "name": "problem_identifier",
+    "domain": "domain_identifier",
+    "objects": {
+      "type_identifier": ["object_identifier"]
+    },
+    "init": [
+      {
+        "predicate": "predicate_identifier",
+        "arguments": ["object_identifier"],
+        "value": true
+      },
+      {
+        "function": "function_identifier",
+        "arguments": ["object_identifier"],
+        "value": 0
+      }
+    ],
+    "goal": {
+      "structure": "conjunctive",
+      "conditions": [
+        {
+          "predicate": "predicate_identifier",
+          "arguments": ["object_identifier"],
+          "value": true
+        }
+      ],
+      "numeric": [
+        {
+          "op": ">=",
+          "function": "function_identifier",
+          "arguments": ["object_identifier"],
+          "value": 1
+        }
+      ]
+    },
+    "metric": {
+      "type": "minimize",
+      "expression": {
+        "function": "total-cost",
+        "arguments": []
+      }
+    },
+    "constraints": []
+  }
+}

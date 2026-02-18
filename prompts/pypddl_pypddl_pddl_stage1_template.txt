@@ -1,0 +1,9 @@
+{{pypddl_instruction}}
+
+### Domain description
+{{domain_description}}
+
+### Problem description
+{{problem_description}}
+
+Write the PyPDDL domain and problem code. Wrap them in <domain_file>...</domain_file> and <problem_file>...</problem_file>.

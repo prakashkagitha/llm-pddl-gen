@@ -1,0 +1,35 @@
+(define (problem coin_collector_numLocations7_numDistractorItems0_seed46)
+  (:domain coin-collector)
+  (:objects
+    kitchen bathroom living_room corridor pantry bedroom backyard - room
+    north south east west - direction
+    coin - item
+  )
+  (:init
+    (at kitchen)
+    (closed-door kitchen bathroom north)
+    (connected kitchen living_room south)
+    (connected kitchen corridor east)
+    (closed-door kitchen pantry west)
+    (closed-door bathroom kitchen south)
+    (connected bathroom bedroom east)
+    (connected living_room kitchen north)
+    (closed-door living_room backyard east)
+    (connected corridor kitchen west)
+    (closed-door corridor bedroom north)
+    (closed-door corridor backyard south)
+    (closed-door pantry kitchen east)
+    (connected bedroom bathroom west)
+    (closed-door bedroom corridor south)
+    (closed-door backyard living_room west)
+    (closed-door backyard corridor north)
+    (location coin corridor)
+    (is-reverse north south)
+    (is-reverse south north)
+    (is-reverse east west)
+    (is-reverse west east)
+  )
+  (:goal 
+    (taken coin)
+  )
+)

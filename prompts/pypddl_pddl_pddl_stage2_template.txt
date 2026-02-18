@@ -1,0 +1,14 @@
+{{pddl_instruction}}
+
+Translate the PyPDDL program below into minimal PDDL domain and problem files.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### PyPDDL program
+{{pypddl_program_stage1}}
+
+Wrap the domain in <domain_file>...</domain_file> and the problem in <problem_file>...</problem_file>.

@@ -1,0 +1,2 @@
+As initial conditions I have that, block1 is clear, block2 is clear, the hand is empty, block2 is on top of block4, block4 is on top of block5, block5 is on top of block3, block1 is on the table, and block3 is on the table.
+My goal is to have that block1 is on top of block5, block2 is on top of block1, block3 is on top of block4, block4 is on top of block2, and block5 is on the table.

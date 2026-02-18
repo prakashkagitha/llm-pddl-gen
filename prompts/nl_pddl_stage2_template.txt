@@ -1,0 +1,15 @@
+{{only_pddl_instruction}}
+
+You are an expert PDDL engineer.
+Leverage the structured natural-language planning specification, along with the original descriptions, to produce consistent domain and problem files. Always ground your final answer in the original domain and problem descriptions shown below.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### Natural-language planning specification
+{{nl_summary}}
+
+Output syntactically correct PDDL. Wrap only the domain file in <domain_file>...</domain_file> and the problem file in <problem_file>...</problem_file>.

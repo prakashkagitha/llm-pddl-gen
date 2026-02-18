@@ -1,0 +1,12 @@
+{{nl_instruction}}
+
+Use the following natural-language descriptions to craft a complete planning specification in prose. Follow the layout described above.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+Wrap the final structured prose in <nl_summary>...</nl_summary>. Begin your reasoning with <think> so we can inspect the chain of thought.
+Do not emit any PDDL or code yet.

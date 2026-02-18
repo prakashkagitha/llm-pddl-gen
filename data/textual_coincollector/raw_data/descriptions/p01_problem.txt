@@ -1,0 +1,4 @@
+You are in the kitchen.
+To the south of the kitchen is the pantry, connected by a closed door.
+To the east of the kitchen is the corridor, connected by an open passage.
+There is a coin in the kitchen.

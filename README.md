@@ -1,18 +1,37 @@
-# Addressing the Challenges of Planning Language Generation
+# Addressing the Challenges of Planning Language Generation (Minimal)
 
 Paper: [https://arxiv.org/abs/2505.14763](https://arxiv.org/abs/2505.14763)
 
 Prabhu Prakash Kagitha (Drexel University), Andrew Zhu (University of Pennsylvania), Harry "Li" Zhang (Drexel Univeristy)
 
+This repository is a minimal, complete snapshot of the code used in the paper. It pulls the core experiment runner, prompts, and inference/solver/utility/validation modules from the full `planning-llms` codebase while excluding caches and large experiment outputs.
+
+## Repository layout
+- `configs/`: experiment configuration YAMLs
+- `data/`: textual datasets (e.g., `textual_<domain>`)
+- `experiments/`: experiment entry points
+- `prompts/`: prompt templates used by the pipelines
+- `src/inference/`: pipeline implementations
+- `src/solver/`: planning solver wrappers
+- `src/utils/`: experiment utilities and helpers
+- `src/validation/`: PDDL validation helpers
+
 ## Requirements
-vLLM
-outlines # only for running constrained decoding experiments
+Python 3.10+ and the following packages/tools:
+- `vllm`
+- `PyYAML`
+- `requests`
+- `outlines` (only for constrained decoding experiments)
+- `planutils` (only if using the offline `dual-bfws-ffparser` solver)
+- The online solver path uses the planning.domains API and requires network access
 
 ## Running experiments from the paper
 
-All the experiments could be run based on the config YAML file  in configs. After a specific configuration is set, use the following command to run the experiments. (Adjust tensor_parallel based on the number of GPUs to run on)
+All experiments are configured through the YAML in `configs/`. After setting the configuration (including `tensor_parallel` for your GPU count), run:
 
 python -m experiments.run_experiments --config configs/experiment_config.yaml
+
+This repo intentionally omits generated outputs and caches; see `.gitignore` for ignored artifacts.
 
 ## Citation
 

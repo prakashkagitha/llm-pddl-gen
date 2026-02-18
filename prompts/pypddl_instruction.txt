@@ -4,7 +4,7 @@ Identify action sematics i.e. understand the preconditions under which that acti
 Then identify appropriate predicates that could enable action semantics i.e. preconditions and effects.
 Python representation of PDDL domain file has a definitive syntax that must be followed for any domain. An abstract example is given below:
 
-In the following python domain file, the AirCargoDomain class has been created. The structure of the class is similar to how a PDDL domain should be defined.
+In the following python domain file, the DomainName class has been created. The structure of the class is similar to how a PDDL domain should be defined.
 
 Name of the domain is the name of the Python class (DomainName).
 Types are defined as class variables at the top (Type1, Type2).

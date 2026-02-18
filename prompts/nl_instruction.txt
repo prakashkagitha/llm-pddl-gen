@@ -1,0 +1,64 @@
+Natural language planning specifications serve as a blueprint for generating the exact PDDL domain and problem files. Write in clear prose, but ensure every detail required for a faithful PDDL reconstruction is present and testable.
+
+Overall guidance:
+- Organize the specification with labeled sections so the structure is obvious without PDDL syntax.
+- Use precise terminology and consistent naming; anything omitted here cannot appear in the final PDDL.
+- State facts, conditions, and effects explicitly. Avoid implication, ambiguity, or narrative fluff.
+
+Domain description must include:
+- Domain title and a one-sentence overview of the scenario.
+- Complete list of entity types, subtyping relations when relevant, and the role each type plays.
+- Exhaustive catalog of predicates. For each predicate, name every parameter, state its type, and clarify exactly what the predicate means when true.
+- Exhaustive catalog of actions. For each action, provide:
+  * Action title and concise intent.
+  * Parameter list with names and types, including any constraints or distinctness requirements.
+  * Preconditions broken out as positive conditions (facts that must hold) and negative conditions (facts that must not hold), both referencing the predicates above.
+  * Effects split into add effects (facts that become true) and delete effects (facts that cease to hold). Mention conditional effects separately if they exist.
+  * Any invariants or notes needed to enforce the same logical behavior as PDDL.
+
+Problem description must include:
+- Problem title and one-sentence context linking it to the domain.
+- Exhaustive list of objects, grouped by type, using the exact type names from the domain section.
+- Initial state described as bullet points or sentences, each mapping directly to a predicate instance that should hold initially. Include explicit mention of facts that are false if the domain relies on them.
+- Goal conditions stated explicitly, each tied to predicate instances. Distinguish between conjunctive and disjunctive goals if applicable.
+
+Formatting conventions:
+- Stick to full sentences or crisp bullet points—no raw PDDL, no code blocks, no decorative markup.
+- Maintain consistent vocabulary between domain and problem sections so predicates, actions, and objects align exactly.
+- If numeric fluents, temporal elements, or other advanced PDDL features are present, describe their roles, bounds, and update rules explicitly.
+- The specification must be sufficient for a separate model to regenerate the original PDDL without guessing.
+
+Abstract example (replace placeholders with the concrete content for the task at hand):
+Domain Specification — DomainName
+Overview: A single sentence summarizing the planning scenario.
+Entity Types:
+- Type1: Explanation of entities of this type and any subtype relationships.
+- Type2: Explanation of entities of this type.
+Predicates:
+- predicate1(entity1: Type1, entity2: Type2): Meaning of the fact when true.
+- predicate2(entity: Type2): Meaning of the fact when true.
+Actions:
+Action: Action1
+Intent: Brief purpose of the action.
+Parameters: entity1: Type1, entity2: Type2 (include distinctness constraints if required).
+Preconditions:
+- Positive: predicate1(entity1, entity2) must hold.
+- Negative: predicate2(entity2) must not hold.
+Effects:
+- Add: predicate2(entity2) becomes true.
+- Delete: predicate1(entity1, entity2) ceases to hold.
+- Conditional: Describe any conditional effects explicitly, including their triggering conditions.
+Action: Action2
+Intent: Another representative action with its parameters, preconditions, and effects fully spelled out.
+
+Problem Specification — ProblemName
+Context: One sentence linking the problem to the domain.
+Objects:
+- Type1: obj1, obj2 (brief descriptions optional).
+- Type2: obj3, obj4.
+Initial State:
+- predicate1(obj1, obj3) holds because …
+- predicate2(obj4) is false (state explicitly if the domain depends on this).
+Goal Conditions:
+- Conjunctive goal requiring predicate2(obj3) and predicate2(obj4) to hold.
+- Note disjunctions or temporal ordering if the problem includes them.

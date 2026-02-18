@@ -1,0 +1,10 @@
+{{pddl_instruction}}
+
+Domain description:
+{{domain_description}}
+
+Problem description:
+{{problem_description}}
+Write the domain and problem files in minimal PDDL.
+
+Wrap the domain inside <domain_file>...</domain_file> and the problem inside <problem_file>...</problem_file>.

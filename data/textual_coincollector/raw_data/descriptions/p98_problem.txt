@@ -1,0 +1,14 @@
+You are in the kitchen.
+To the south of the kitchen is the laundry room, connected by a closed door.
+To the east of the kitchen is the pantry, connected by a closed door.
+To the west of the kitchen is the bathroom, connected by a closed door.
+To the west of the laundry room is the corridor, connected by a closed door.
+To the south of the bathroom is the corridor, connected by a closed door.
+To the west of the bathroom is the living room, connected by a closed door.
+To the west of the corridor is the backyard, connected by a closed door.
+To the north of the living room is the bedroom, connected by a closed door.
+To the south of the living room is the backyard, connected by a closed door.
+To the south of the backyard is the street, connected by an open passage.
+To the west of the backyard is the driveway, connected by an open passage.
+To the south of the street is the supermarket, connected by a closed door.
+There is a coin in the bathroom.

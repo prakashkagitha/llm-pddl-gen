@@ -1,0 +1,21 @@
+{{only_pddl_instruction}}
+
+You are an expert PDDL engineer. Using the natural-language descriptions and the PyPDDL program below, produce syntactically correct, mutually consistent domain and problem PDDL files. Keep the original descriptions in mind throughout your answer.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### PyPDDL domain class
+```python
+{{pypddl_domain_code}}
+```
+
+### PyPDDL problem class
+```python
+{{pypddl_problem_code}}
+```
+
+Wrap only the final domain PDDL in <domain_file>...</domain_file> and the final problem PDDL in <problem_file>...</problem_file>.

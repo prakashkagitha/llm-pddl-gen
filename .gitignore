@@ -172,3 +172,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Experiment outputs
+output/
+output_*/
+analysis_outputs/
+nohup_outputs/
+*.out

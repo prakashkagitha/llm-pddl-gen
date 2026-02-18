@@ -1,0 +1,22 @@
+{{pddl_instruction}}
+
+Domain description:
+{{domain_description}}
+
+Problem description:
+{{problem_description}}
+Write the domain and problem files in minimal PDDL.
+
+To aid the revision, the original natural-language descriptions are repeated above.
+------ Previous attempt start ------
+[DOMAIN FILE]
+{{stage1_domain_file}}
+
+[PROBLEM FILE]
+{{stage1_problem_file}}
+------ Previous attempt end --------
+
+Feedback from the planning solver:
+{{stage1_solver_feedback}}
+
+Revise the domain and problem to fix the issues. Output only the new domain wrapped in <domain_file>...</domain_file> and the new problem wrapped in <problem_file>...</problem_file>.

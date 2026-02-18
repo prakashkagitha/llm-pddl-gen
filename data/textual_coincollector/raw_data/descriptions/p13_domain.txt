@@ -1,0 +1,25 @@
+I'm exploring a grid of rooms to collect items. Doors may block passage between rooms until I open them. Here are the actions I can do:
+
+    Move from one room to an adjacent room in a given direction
+    Open a closed door between two rooms (which then allows travel both ways)
+    Take (pick up) an item that's in the same room as me
+
+I have the following restrictions on my actions:
+
+    I can move only if there is an open connection from my current room to the target room in the intended direction.
+    If a door between two rooms is closed, I must open it before I can move through it.
+    To open a door, I must be in one of the two rooms the door connects, and I must know both the direction I'm opening in and its reverse (e.g., east/west, north/south).
+    Opening the door removes the "closed" state and creates connections in both directions.
+    I can only take an item if I am in the same room as the item and the item hasn't already been taken.
+    Once I take an item, it is considered collected (no longer present in the room).
+
+Additional notes:
+
+    Connections are directional; moving east is different from moving west. Doors and connections are recorded with a direction and its reverse.
+    Opening a door simultaneously enables travel both ways between the two rooms.
+
+;; Action Heads
+
+move  (?room1 - room ?room2 - room ?direction - direction)
+open  (?room1 - room ?room2 - room ?direction - direction ?reverse - direction)
+take  (?item  - item ?room  - room)

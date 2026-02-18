@@ -1,0 +1,9 @@
+{{nl_instruction}}
+
+### Domain description
+{{domain_description}}
+
+### Problem description
+{{problem_description}}
+
+Produce the full natural-language planning specification. Wrap it in <nl_summary>...</nl_summary> and start reasoning with <think>.

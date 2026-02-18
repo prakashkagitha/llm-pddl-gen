@@ -1,0 +1,27 @@
+{{pddl_instruction}}
+
+Use the PyPDDL program and solver feedback below to produce consistent PDDL domain and problem files.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### PyPDDL program
+{{pypddl_program_stage2}}
+
+### Auto-converted domain.pddl
+```pddl
+{{auto_domain_pddl}}
+```
+
+### Auto-converted problem.pddl
+```pddl
+{{auto_problem_pddl}}
+```
+
+### Solver feedback
+{{solver_feedback_stage2}}
+
+Wrap the revised domain in <domain_file>...</domain_file> and the revised problem in <problem_file>...</problem_file>.

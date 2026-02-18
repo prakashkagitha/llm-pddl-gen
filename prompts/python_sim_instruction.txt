@@ -1,0 +1,68 @@
+Python planning simulators model the same information that appears in a PDDL domain and problem pair, but they do so with idiomatic Python code instead of declarative syntax.
+Represent the domain as reusable classes and functions that expose:
+- object and type definitions that mirror the planning entities;
+- predicates encoded as helpers that inspect the world state;
+- action definitions that check preconditions and apply effects to produce a successor state;
+- utilities to enumerate available actions and to advance the state when an action fires.
+
+Represent the problem instance as code that imports or subclasses the domain definition, enumerates the concrete objects, builds the initial state, and defines the goal test.
+Use simple dataclasses or typed containers so the state is explicit and immutable whenever practical.
+
+Always wrap the reusable domain code in <domain_file>…</domain_file> and the problem-specific code in <problem_file>…</problem_file>, with no text outside the tags.
+Begin private scratch work inside a <think> tag so the chain of thought is preserved.
+
+Example layout (replace names, predicates, and actions with the real ones for the task at hand):
+
+<domain_file>
+from __future__ import annotations
+from dataclasses import dataclass, replace
+from typing import Iterable, List
+
+@dataclass(frozen=True)
+class State:
+    """Immutable snapshot of the world."""
+    # add boolean flags, positions, or other facts that capture the world
+
+@dataclass(frozen=True)
+class Action:
+    name: str
+    params: tuple
+    def is_applicable(self, state: State) -> bool:
+        ...  # check preconditions
+    def apply(self, state: State) -> State:
+        ...  # return a new state with effects applied
+
+def available_actions(state: State) -> Iterable[Action]:
+    ...  # enumerate every ground action that is currently valid
+
+def execute(action: Action, state: State) -> State:
+    return action.apply(state)
+</domain_file>
+
+<problem_file>
+from typing import List, Tuple
+# instantiate concrete objects for this problem instance
+# build the initial state using the domain definitions
+
+def initial_state() -> State:
+    ...
+
+def is_goal(state: State) -> bool:
+    ...
+
+def solve(limit: int = 1024) -> List[Action]:
+    frontier: List[Tuple[State, List[Action]]] = [(initial_state(), [])]
+    while frontier and len(frontier) < limit:
+        state, plan = frontier.pop(0)
+        if is_goal(state):
+            return plan
+        for act in available_actions(state):
+            nxt = execute(act, state)
+            frontier.append((nxt, plan + [act]))
+    return []
+</problem_file>
+
+Notes:
+- Replace ellipses with concrete logic derived from the provided natural-language domain and problem descriptions.
+- Keep the domain module free of problem-specific constants; those belong in the problem module.
+- Prefer pure functions and immutable data so that translating the simulator back into PDDL is straightforward.

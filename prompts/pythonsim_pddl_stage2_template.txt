@@ -1,0 +1,21 @@
+{{only_pddl_instruction}}
+
+You are an expert PDDL engineer. Using the natural-language descriptions and the Python simulator below, produce syntactically correct and mutually consistent domain/problem PDDL files. Your answer must stay aligned with the original domain and problem descriptions referenced above.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### Python simulator -- domain module
+```python
+{{python_domain_module}}
+```
+
+### Python simulator -- problem module
+```python
+{{python_problem_module}}
+```
+
+Wrap only the final domain PDDL in <domain_file>...</domain_file> and the final problem PDDL in <problem_file>...</problem_file>.

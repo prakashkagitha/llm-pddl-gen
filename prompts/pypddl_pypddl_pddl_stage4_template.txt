@@ -1,0 +1,27 @@
+{{pddl_instruction}}
+
+Convert the refined PyPDDL program below into PDDL domain and problem files.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### PyPDDL program
+{{pypddl_program_stage3}}
+
+### Auto-converted domain.pddl
+```pddl
+{{auto_domain_pddl_stage3}}
+```
+
+### Auto-converted problem.pddl
+```pddl
+{{auto_problem_pddl_stage3}}
+```
+
+### Solver feedback
+{{solver_feedback_stage3}}
+
+Wrap the domain in <domain_file>...</domain_file> and the problem in <problem_file>...</problem_file>.

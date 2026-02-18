@@ -89,9 +89,19 @@ class Validator:
         dataset folder.  Extend this mapping if you add more domains.
         """
         mapping = {
-            "blocksworld": "data/textual_blocksworld/BlocksWorld-100_PDDL/domain.pddl",
-            "logistics":   "data/textual_logistics/Logistics-100_PDDL/domain.pddl",
-            "barman":      "data/textual_barman/Barman-100_PDDL/domain.pddl",
+            "blocksworld":       "data/textual_blocksworld/BlocksWorld-100_PDDL/domain.pddl",
+            "blocksworld5to50":  "data/textual_blocksworld5to50/BlocksWorld5to50-100_PDDL/domain.pddl",
+            "blocksworldxl":     "data/textual_blocksworldxl/BlocksWorldXL-100_PDDL/domain.pddl",
+            "blocksworld-xl":    "data/textual_blocksworldxl/BlocksWorldXL-100_PDDL/domain.pddl",
+            "blocksworldxl-mix": "data/textual_blocksworldxl_mix/BlocksWorldXL-Mix-100_PDDL/domain.pddl",
+            "logistics":         "data/textual_logistics/Logistics-100_PDDL/domain.pddl",
+            "barman":            "data/textual_barman/Barman-100_PDDL/domain.pddl",
+            "coincollector":     "data/textual_coincollector/CoinCollector-100_PDDL/domain.pddl",
+            "coin-collector":    "data/textual_coincollector/CoinCollector-100_PDDL/domain.pddl",
+            "sokoban":           "data/textual_sokoban/Sokoban-100_PDDL/domain.pddl",
+            "textual_sokoban":   "data/textual_sokoban/Sokoban-100_PDDL/domain.pddl",
+            "gripper":           "data/textual_gripper/Gripper-100_PDDL/domain.pddl",
+            "textual_gripper":   "data/textual_gripper/Gripper-100_PDDL/domain.pddl",
         }
         try:
             return mapping[domain.lower()]

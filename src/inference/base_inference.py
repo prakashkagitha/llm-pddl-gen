@@ -14,9 +14,9 @@ Key additions
 """
 from __future__ import annotations
 
-import os, re, gc, itertools, random
+import os, re, gc, itertools, random, csv
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union, Optional
 
 import torch
 import numpy as np
@@ -27,6 +27,52 @@ from src.validation.validator import Validator
 
 
 class BaseInference(ABC):
+    CHAIN_OF_THOUGHT_SUFFIX = (
+        "Let's think step by step, self-verify and explore different possibilities while "
+        "following the given instruction."
+    )
+
+    _ERROR_CATEGORY_ORDER = (
+        "duplicate_declarations",
+        "type_or_arity_issues",
+        "unsolvable",
+        "miscellaneous",
+    )
+    _ERROR_CATEGORY_PATTERNS = {
+        "duplicate_declarations": re.compile(
+            r"(?i)(declared twice|multiply defined|already defined)"
+        ),
+        "type_or_arity_issues": re.compile(
+            r"(?i)(type mismatch|unknown or empty type|unknown type|wrong type|"
+            r"incompatible type|does not match type|declared to have \d+ \(not \d+\)|"
+            r"number of arguments|expects \d+ arguments)"
+        ),
+        "unsolvable": re.compile(
+            r"(?im)(plan not found|no plan|no solution|simplified to false|notfound|"
+            r"search exhausted|search failed|^---\s*ok)"
+        ),
+    }
+
+
+    def _augment_prompt(self, prompt: str) -> str:
+        """Prepends the system prompt (if any) and adds the CoT suffix."""
+        suffix = self.CHAIN_OF_THOUGHT_SUFFIX
+        body = prompt.strip()
+
+        sys_prompt = getattr(self, "system_prompt", "").strip()
+        if sys_prompt:
+            if not body:
+                body = sys_prompt
+            elif not body.startswith(sys_prompt):
+                body = f"{sys_prompt}\n\n{body}"
+
+        if not body:
+            return suffix
+
+        if not body.endswith(suffix):
+            body = f"{body}\n\n{suffix}"
+
+        return body
     # ------------------------------------------------------------------ #
     def __init__(
         self,
@@ -38,6 +84,7 @@ class BaseInference(ABC):
         *,
         tensor_parallel: int = 1,
         seed: int = 42,
+        system_prompt: str | None = None,
         **_ignored,
     ):
         self.model = model
@@ -46,13 +93,19 @@ class BaseInference(ABC):
         self.domain = domain
         self.data_type = data_type
         self.seed = seed
+        self.system_prompt = (system_prompt or "").strip()
 
         # Set seeds for reproducibility
         self._set_seeds(seed)
 
+        # Track prompt/completion token usage per evaluation run
+        self._token_usage = {"prompt": 0, "completion": 0}
+        self._stage_token_totals: Dict[str, int] = {}
+        self._reset_error_counters()
+
         self.llm = LLM(
             model=model, 
-            max_model_len=30_000, 
+            max_model_len=40_000, 
             tensor_parallel_size=tensor_parallel,
             seed=seed  # vLLM seed parameter
         )
@@ -87,6 +140,52 @@ class BaseInference(ABC):
         os.environ['PYTHONHASHSEED'] = str(seed)
 
     # ------------------------------------------------------------------ #
+    #  Solver error categorisation                                       #
+    # ------------------------------------------------------------------ #
+    def _reset_error_counters(self) -> None:
+        self._error_counts: Dict[str, int] = {
+            key: 0 for key in self._ERROR_CATEGORY_ORDER
+        }
+        self._stage_error_counts: Dict[str, Dict[str, int]] = {}
+
+    def _categorize_solver_error(self, msg: str) -> str:
+        if not msg or not msg.strip():
+            return ""
+        for key in self._ERROR_CATEGORY_ORDER:
+            pattern = self._ERROR_CATEGORY_PATTERNS.get(key)
+            if pattern and pattern.search(msg):
+                return key
+        return "miscellaneous"
+
+    def _record_solver_error(self, msg: str, stage: Optional[str] = None) -> str:
+        category = self._categorize_solver_error(msg)
+        if category:
+            self._error_counts[category] += 1
+            if stage:
+                bucket = self._stage_error_counts.setdefault(
+                    stage,
+                    {key: 0 for key in self._ERROR_CATEGORY_ORDER},
+                )
+                bucket[category] += 1
+        return category
+
+    def _solver_error_metrics(self, stage: Optional[str] = None) -> Dict[str, int]:
+        source: Dict[str, int]
+        if stage is None:
+            source = self._error_counts
+        else:
+            source = self._stage_error_counts.get(
+                stage,
+                {key: 0 for key in self._ERROR_CATEGORY_ORDER},
+            )
+        return {
+            "duplicate_declaration_error_count": source["duplicate_declarations"],
+            "type_or_arity_error_count": source["type_or_arity_issues"],
+            "unsolvable_error_count": source["unsolvable"],
+            "miscellaneous_error_count": source["miscellaneous"],
+        }
+
+    # ------------------------------------------------------------------ #
     #  Every pipeline must at least implement *get_prompt*               #
     # ------------------------------------------------------------------ #
     @abstractmethod
@@ -97,15 +196,15 @@ class BaseInference(ABC):
     # ------------------------------------------------------------------ #
     def get_batch_responses(self, problem_ids: List[str]) -> List[Dict]:
         """One answer per problem, single vLLM call."""
-        prompts = [self.get_prompt(pid) for pid in problem_ids]
-        outs = self.llm.generate(prompts, self.sampler)
+        prompts = [self._augment_prompt(self.get_prompt(pid)) for pid in problem_ids]
+        outs = self._tracked_generate(prompts, self.sampler)
         return [self._resp2dict(o.outputs[0].text) for o in outs]
 
     def get_multiple_batch_responses(
         self, problem_ids: List[str], n: int
     ) -> List[List[Dict]]:
         """pass@N – *n* answers per problem, single vLLM call."""
-        prm = [self.get_prompt(pid) for pid in problem_ids]
+        prm = [self._augment_prompt(self.get_prompt(pid)) for pid in problem_ids]
         sp = SamplingParams(
             temperature=self.temperature, 
             top_p=0.95, 
@@ -113,7 +212,7 @@ class BaseInference(ABC):
             n=n,
             seed=self.seed  # Use instance seed
         )
-        outs = self.llm.generate(prm, sp)
+        outs = self._tracked_generate(prm, sp)
         return [
             [self._resp2dict(o.text) for o in item.outputs] for item in outs
         ]
@@ -132,19 +231,132 @@ class BaseInference(ABC):
     def _safe(txt: str | None) -> str: return "" if txt is None else txt
 
     @staticmethod
-    def _unwrap(txt: str, tag: str) -> str:
-        txt = txt.split("</think>", 1)[-1]
-        m = re.search(fr"<{tag}>(.*?)</{tag}>", txt, re.DOTALL)
-        return m.group(1).strip() if m else ""
+    def _strip_think(txt: str) -> str:
+        if not txt:
+            return ""
+        if "</think>" not in txt:
+            return txt
+        head, tail = txt.split("</think>", 1)
+        if tail.strip():
+            return tail
+        return txt
+
+    @staticmethod
+    def _extract_last_tag(txt: str, tag: str) -> str:
+        pattern = re.compile(fr"<{tag}>(.*?)</{tag}>", re.DOTALL)
+        matches = list(pattern.finditer(txt))
+        if not matches:
+            return ""
+        candidate = matches[-1].group(1)
+        open_tag = f"<{tag}>"
+        last_idx = candidate.rfind(open_tag)
+        if last_idx != -1:
+            candidate = candidate[last_idx + len(open_tag):]
+        return candidate.strip()
+
+    def _unwrap(self, txt: str, tag: str) -> str:
+        stripped = self._strip_think(txt)
+        chunks = []
+        if stripped:
+            chunks.append(stripped)
+        if stripped != txt:
+            chunks.append(txt)
+        elif not chunks:
+            chunks.append(txt)
+
+        for chunk in chunks:
+            candidate = self._extract_last_tag(chunk, tag)
+            if candidate:
+                return candidate
+        return ""
 
     def _resp2dict(self, full: str, summary: str = "") -> Dict[str, str]:
-        full = full.split("</think>", 1)[-1]
         return {
             "df": self._safe(self._unwrap(full, "domain_file")),
             "pf": self._safe(self._unwrap(full, "problem_file")),
-            "raw": full,
+            "raw": self._safe(full),
             "summary": summary,
         }
+
+    # ---------------- token accounting -------------------------------- #
+    def _reset_token_usage(self) -> None:
+        self._token_usage = {"prompt": 0, "completion": 0}
+        self._stage_token_totals = {}
+        self._reset_error_counters()
+
+    def _tracked_generate(self, prompts: List[str], sampling_params: SamplingParams):
+        outs = self.llm.generate(prompts, sampling_params)
+
+        prompt_total = 0
+        completion_total = 0
+
+        for out in outs:
+            prompt_ids = getattr(out, "prompt_token_ids", None)
+            if prompt_ids is None:
+                prompt_len = len(getattr(out, "prompt_token_ids", []) or [])
+            else:
+                prompt_len = len(prompt_ids)
+            prompt_total += prompt_len
+
+            outputs = getattr(out, "outputs", []) or []
+            for resp in outputs:
+                token_ids = getattr(resp, "token_ids", None)
+                if token_ids is None:
+                    completion_len = len(getattr(resp, "token_ids", []) or [])
+                else:
+                    completion_len = len(token_ids)
+                completion_total += completion_len
+
+        self._token_usage["prompt"] += prompt_total
+        self._token_usage["completion"] += completion_total
+        return outs
+
+    def _tracked_generate_token_free(
+        self, prompts: List[str], sampling_params: SamplingParams
+    ):
+        """Run generation without counting tokens towards aggregate metrics."""
+        prev_prompt = self._token_usage["prompt"]
+        prev_completion = self._token_usage["completion"]
+        outs = self._tracked_generate(prompts, sampling_params)
+
+        prompt_delta = self._token_usage["prompt"] - prev_prompt
+        completion_delta = self._token_usage["completion"] - prev_completion
+
+        if prompt_delta:
+            self._token_usage["prompt"] -= prompt_delta
+        if completion_delta:
+            self._token_usage["completion"] -= completion_delta
+
+        return outs
+
+    def _total_token_count(self) -> int:
+        return self._token_usage["prompt"] + self._token_usage["completion"]
+
+    def _mark_stage_tokens(self, stage: str) -> None:
+        """Record cumulative token usage once a stage has completed generation."""
+        self._stage_token_totals[stage] = self._total_token_count()
+
+    def _write_stage_metrics(
+        self, out_root: str, filename: str, rows: List[Dict[str, object]]
+    ) -> None:
+        """Persist per-stage aggregate metrics for quick inspection."""
+        if not rows:
+            return
+
+        all_fields: List[str] = []
+        seen = set()
+        for row in rows:
+            for key in row.keys():
+                if key not in seen:
+                    seen.add(key)
+                    all_fields.append(key)
+
+        path = os.path.join(out_root, filename)
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=all_fields)
+            writer.writeheader()
+            norm_rows = [{k: row.get(k, "") for k in all_fields} for row in rows]
+            writer.writerows(norm_rows)
 
     # ---------------- artefact-saving (unchanged from v3) -------------- #
     def _save_candidate(
@@ -184,10 +396,17 @@ class BaseInference(ABC):
 
     # ---------------- candidate-level evaluation (unchanged) ----------- #
     def _check_candidate(
-        self, pid: str, idx: int, cand: Dict[str, str], out_root: str
-    ) -> Tuple[bool, bool, str, str]:
+        self,
+        pid: str,
+        idx: int,
+        cand: Dict[str, str],
+        out_root: str,
+        *,
+        stage_name: Optional[str] = None,
+    ) -> Tuple[bool, bool, str, str, bool, str]:
         df_path, pf_path = self._save_candidate(out_root, pid, idx, cand)
         plan, sol_err = self._solver.solve_with_error(df_path, pf_path)
+        category = self._record_solver_error(sol_err, stage=stage_name)
         # print("Plan:\n", plan)
         # print("\nsol_err:\n", sol_err)
         syn_ok = bool(plan) or ("syntax error" not in sol_err.lower())
@@ -197,28 +416,66 @@ class BaseInference(ABC):
             val_ok, val_msg = self._validator.validate_with_error(
                 self.domain, pid, plan_path
             )
-            return syn_ok, val_ok, sol_err, val_msg
-        return syn_ok, False, sol_err, ""
+            return syn_ok, val_ok, sol_err, val_msg, True, category
+        return syn_ok, False, sol_err, "", False, category
 
     # ------------------------------------------------------------------ #
     #  Metric computation (now batched)                                  #
     # ------------------------------------------------------------------ #
-    def evaluate(self, problem_ids: List[str], out_dir: str) -> Tuple[float, float]:
+    def evaluate(
+        self, problem_ids: List[str], out_dir: str
+    ) -> Dict[str, Union[int, float]]:
+        self._reset_token_usage()
         all_cands = self.batch_generate_candidates(problem_ids)
+
         syn_ok = sem_ok = 0
+        plan_not_found = plan_not_valid = 0
 
         for pid, cand_list in zip(problem_ids, all_cands):
             s_ok = se_ok = False
+            plan_found_for_problem = False
+            final_category = ""
+
             for idx, cand in enumerate(cand_list):
-                so, seo, _, _ = self._check_candidate(pid, idx, cand, out_dir)
+                so, seo, _, _, plan_found, category = self._check_candidate(
+                    pid, idx, cand, out_dir, stage_name="stage_final"
+                )
                 s_ok |= so
                 se_ok |= seo
-                if se_ok: break
+                plan_found_for_problem |= plan_found
+                if category:
+                    final_category = category
+                if se_ok:
+                    break
+
             syn_ok += int(s_ok)
             sem_ok += int(se_ok)
+            if se_ok:
+                continue
+            if final_category == "unsolvable":
+                plan_not_found += 1
+            elif plan_found_for_problem:
+                plan_not_valid += 1
+            else:
+                plan_not_found += 1
 
         n = len(problem_ids)
-        return syn_ok / n, sem_ok / n
+        total_tokens = self._total_token_count()
+        tokens_per_valid = float("nan") if sem_ok == 0 else total_tokens / sem_ok
+
+        metrics = {
+            "syntactic_accuracy": syn_ok / n if n else 0.0,
+            "semantic_accuracy": sem_ok / n if n else 0.0,
+            "syntactic_success_count": syn_ok,
+            "semantic_success_count": sem_ok,
+            "plan_not_found_count": plan_not_found,
+            "plan_not_valid_count": plan_not_valid,
+            "total_tokens": total_tokens,
+            "tokens_per_valid_plan": tokens_per_valid,
+            "n_problems": n,
+        }
+        metrics.update(self._solver_error_metrics())
+        return metrics
 
     # ------------------------------------------------------------------ #
     def close(self):

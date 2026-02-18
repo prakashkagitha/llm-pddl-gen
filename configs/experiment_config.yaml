@@ -1,29 +1,55 @@
 # ------------------------------------------------------------------------
 # Global experiment configuration
 # ------------------------------------------------------------------------
-seeds: [42, 43, 44]  # for reproducibility
+seeds: [64]  # for reproducibility
 
 llm_models:
-  - "Qwen/Qwen3-32B"
+  # - "Qwen/Qwen3-235B-A22B-Thinking-2507"
+  # - "Qwen/Qwen3-235B-A22B-Thinking-2507-FP8"
+  # - "zai-org/GLM-4.6-FP8"
+  - "openai/gpt-oss-120b"
+  # - "facebook/cwm"
+  # - "Qwen/Qwen3-32B"
+  - "Qwen/QwQ-32B"
+  # - "zai-org/GLM-4.5-Air-FP8"
+  # - "Qwen/Qwen3-1.7B"
   # - "Qwen/Qwen3-8B"
+  # - "Qwen/Qwen3-4B-Instruct-2507"
+  # - "Qwen/Qwen3-4B-Thinking-2507"
+  # - "Qwen/Qwen3-30B-A3B-Thinking-2507"
   # - "Qwen/Qwen2.5-32B-Instruct"
   # - "google/gemma-3-27b-it"
   # - "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
   # - "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+  # - "Qwen/Qwen3-Coder-30B-A3B-Instruct"
 
 domains:               # folders inside  data/textual_<domain>
-  - barman
-  - blocksworld
+  # - blocksworld
+  # - blocksworld5to50
+  # - sokoban
+  # - gripper
+  # - blocksworldxl
+  # - blocksworldxl-mix
   - logistics
+  # - barman
+  # - coincollector
  
 
 data_types:            # make sure of same length as domains
-  - Moderately_Templated_Barman-100
-  - Moderately_Templated_BlocksWorld-100
-  - Moderately_Templated_Logistics-100
+
+# - Moderately_Templated_BlocksWorld-100
+# - Moderately_Templated_BlocksWorld5to50-100
+# - Moderately_Templated_Sokoban-100
+# - Moderately_Templated_Gripper-100
+# - Moderately_Templated_BlocksWorldXL-100
+# - Moderately_Templated_BlocksWorldXL-Mix-100
+# - Moderately_Templated_Logistics-100
+# - Moderately_Templated_Barman-100
+# - Moderately_Templated_CoinCollector-100
+
 
   # - Natural_BlocksWorld-100
-  # - Natural_Logistics-100
+  - Natural_Logistics-100
   # - Natural_Templated_Barman-100
 
 temperatures: [0.4]
@@ -31,36 +57,30 @@ temperatures: [0.4]
 # ------------------------------------------------------------------------
 # Pipeline-specific knobs
 # ------------------------------------------------------------------------
-num_pass_attempts: 1        # K for pass@K
-num_revision_rounds: 3
-pass_at_n: 4                    # used only by PassNPipeline
-tensor_parallel: 2               # forwarded to vLLM
+num_pass_attempts: 1       # K for pass@K
+num_revision_rounds: 3  # number of self-revision rounds
+pass_at_n: 4                  # used only by PassNPipeline
+tensor_parallel: 2            # forwarded to vLLM
 
-# Available options:
-#   baseline_pddl         – no knowledge-prompt prefix
-#   pddl_knowledge        – legacy “PDDL knowledge prompt”
-#   separate_pddl         – 2-stage: domain → problem
-#   summary_pddl          – 2-stage: summary → PDDL
-#   pass_at_n             – pass@N with knowledge prompt
-#   always_revise         – blind self-revision loop
-#   revision_solver       – revise with solver feedback
-#   revision_solver_val   – revise with solver + VAL feedback
-#   pypddl                – Python PDDL → py2pddl → PDDL files
-#   constrained_decoding  – CFG decoding with *outlines*
-#   pddlwithpy2pddl       – py2pddl → PDDL files
-#   best_of_all           – pass@N + summary + solver + VAL
+
 pipelines:
-  # - pddl_knowledge
-  # - baseline_pddl
-  # - separate_pddl
-  # - summary_pddl
-  - pass_at_n
-  # - revision_solver
-  # - revision_solver_val
-  # - pypddl
-  # - constrained_decoding
-  # - pddlwithpy2pddl
-  # - pddlwithpythonenv
+  - pddl
+  # - pddl_plan
+  - plan_gen
+  - pypddl_pddl
+  # - nl_pddl
+  # - pythonsim_pddl
+  # - json_pddl
+  - pddl_pddl
+  # - pddl_pddl_nofb
+  # - pypddl_pddl_pddl
+  # - pypddl_pypddl_pddl
+  # - nl_pypddl_pddl
+  # - pddl_pddl_pddl
+  # - pddl_pddl_pddl_nofb
+  # - nl_nl_pddl
+  # - pddl_pypddl_pddl
+
 
 prompt_versions:   # file-prefixes looked-up under ./prompts/
   - pddl_instruction
@@ -68,3 +88,13 @@ prompt_versions:   # file-prefixes looked-up under ./prompts/
 
 # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,] [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
 problems: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100]
+
+system_prompt: |
+  You are a helpful AI assistant.
+  
+
+# You always reason before responding, using the following format:
+# <think>
+# your internal reasoning
+# </think>
+# your external response

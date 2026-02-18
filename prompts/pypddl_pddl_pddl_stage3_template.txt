@@ -1,0 +1,24 @@
+{{pddl_instruction}}
+
+Use the solver feedback below to revise the PDDL specification. Address the reported issues and keep the model consistent with the original descriptions.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### Previous domain.pddl
+```pddl
+{{stage2_domain_pddl}}
+```
+
+### Previous problem.pddl
+```pddl
+{{stage2_problem_pddl}}
+```
+
+### Solver feedback
+{{solver_feedback_stage2}}
+
+Wrap the refined domain in <domain_file>...</domain_file> and the refined problem in <problem_file>...</problem_file>.

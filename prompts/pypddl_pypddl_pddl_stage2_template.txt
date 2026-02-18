@@ -1,0 +1,21 @@
+You are reviewing a PyPDDL program for logical and structural issues. Focus on semantics so a downstream translator can produce correct PDDL. Carry out a rigorous internal analysis of potential problems and fixes before responding, then share only a concise summary that covers both issues and suggested repairs inside the tags below.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### Current PyPDDL domain (domain.py)
+```python
+{{pypddl_domain_code_stage1}}
+```
+
+### Current PyPDDL problem (problem.py)
+```python
+{{pypddl_problem_code_stage1}}
+```
+
+Respond with
+<llm_feedback>Summarise the most important issues and concrete repair guidance. Keep it concise.</llm_feedback>
+Do not include any other XML tags in your final answer.

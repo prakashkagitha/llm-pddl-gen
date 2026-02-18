@@ -1,0 +1,25 @@
+{{pddl_instruction}}
+
+Domain description:
+{{domain_description}}
+
+Problem description:
+{{problem_description}}
+Write the domain and problem files in minimal PDDL.
+
+Review the latest PDDL below together with the solver feedback and produce a final corrected version.
+
+### Previous domain.pddl
+```pddl
+{{stage2_domain_file}}
+```
+
+### Previous problem.pddl
+```pddl
+{{stage2_problem_file}}
+```
+
+### Solver feedback
+{{stage2_solver_feedback}}
+
+Wrap the refined domain in <domain_file>...</domain_file> and the refined problem in <problem_file>...</problem_file>.

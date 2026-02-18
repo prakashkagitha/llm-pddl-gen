@@ -1,0 +1,12 @@
+{{only_pddl_instruction}}
+
+You are an expert PDDL engineer.
+Create syntactically correct and mutually consistent domain and problem files using the information below.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+Wrap only the final domain PDDL in <domain_file>...</domain_file> and the final problem PDDL in <problem_file>...</problem_file>.

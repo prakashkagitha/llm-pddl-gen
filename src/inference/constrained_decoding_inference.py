@@ -43,6 +43,7 @@ class ConstrainedDecodingInference(BaseInference):
         *,
         grammar_path: str = "pddl3_1.lark",
         model_name: str | None = None,
+        system_prompt: str | None = None,
         **_kw,  # absorb any extras (tensor_parallel, etc.)
     ):
         # ---- minimal BaseInference state (avoid vLLM) -----------------
@@ -51,6 +52,7 @@ class ConstrainedDecodingInference(BaseInference):
         self.prompt_version = prompt_version
         self.domain = domain
         self.data_type = data_type
+        self.system_prompt = (system_prompt or "").strip()
 
         # No GPU‑heavy vLLM engine
         self.llm = None  # so any accidental call will fail fast
@@ -114,12 +116,13 @@ class ConstrainedDecodingInference(BaseInference):
         for pid in problem_ids:
             dom_desc, prob_desc = self._descs(pid)
             prob_descs.append(prob_desc)
-            dom_prompts.append(
+            prompt = (
                 self._prefix()
                 + "DOMAIN DESCRIPTION:\n"
                 + dom_desc
                 + "\n\nDon't think, just Generate **only** the domain file in PDDL. /no_think \n"
             )
+            dom_prompts.append(self._augment_prompt(prompt))
         # call _dom_gen 10 promts at a time
         domain_pddls: List[str] = []
         for i in range(0, len(dom_prompts), 10):
@@ -132,7 +135,7 @@ class ConstrainedDecodingInference(BaseInference):
         # ---------- 2. PROBLEM FILES ----------------------------------- #
         prob_prompts: List[str] = []
         for dom_pddl, prob_desc in zip(domain_pddls, prob_descs):
-            prob_prompts.append(
+            prompt = (
                 self._prefix()
                 + "DOMAIN FILE:\n"
                 + dom_pddl
@@ -140,6 +143,7 @@ class ConstrainedDecodingInference(BaseInference):
                 + prob_desc
                 + "\n\nDon't think, just generate **only** the problem file in PDDL. /no_think \n"
             )
+            prob_prompts.append(self._augment_prompt(prompt))
         # call _prob_gen 10 promts at a time
         problem_pddls: List[str] = []
         for i in range(0, len(prob_prompts), 10):

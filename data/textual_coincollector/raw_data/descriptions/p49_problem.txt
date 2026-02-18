@@ -1,0 +1,9 @@
+You are in the kitchen.
+To the north of the kitchen is the pantry, connected by a closed door.
+To the south of the kitchen is the corridor, connected by an open passage.
+To the west of the kitchen is the living room, connected by an open passage.
+To the south of the corridor is the bathroom, connected by a closed door.
+To the east of the corridor is the backyard, connected by a closed door.
+To the west of the corridor is the bedroom, connected by a closed door.
+To the south of the living room is the bedroom, connected by a closed door.
+There is a coin in the pantry.

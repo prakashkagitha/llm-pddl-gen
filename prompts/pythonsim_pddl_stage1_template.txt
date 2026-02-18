@@ -1,0 +1,9 @@
+{{python_sim_instruction}}
+
+### Domain description
+{{domain_description}}
+
+### Problem description
+{{problem_description}}
+
+Synthesise the Python planning simulator. Wrap the reusable domain code in <domain_file>...</domain_file> and the problem-specific code in <problem_file>...</problem_file>.

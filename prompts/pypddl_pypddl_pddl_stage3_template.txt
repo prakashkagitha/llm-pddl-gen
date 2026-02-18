@@ -1,0 +1,24 @@
+{{pypddl_instruction}}
+
+Use the expert feedback below to improve the PyPDDL program. Address every issue before emitting code. Prioritise semantics that will make translation to PDDL straightforward.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### Previous PyPDDL domain (domain.py)
+```python
+{{pypddl_domain_code_stage1}}
+```
+
+### Previous PyPDDL problem (problem.py)
+```python
+{{pypddl_problem_code_stage1}}
+```
+
+### Review summary
+{{llm_feedback}}
+
+Produce revised domain and problem code wrapped in <domain_file>...</domain_file> and <problem_file>...</problem_file>.

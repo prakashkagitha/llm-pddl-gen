@@ -1,0 +1,18 @@
+I am playing a Sokoban puzzle where a player pushes stone crates onto goal squares. Here are the actions I can do
+
+   Move the player into an adjacent clear square
+   Push a stone into an adjacent goal square
+   Push a stone into an adjacent non-goal square
+
+   I have the following restrictions on my actions:
+   I can only move if I choose one of the four cardinal directions, I am the player, I am at the from-square, the destination square is clear, and the two squares are aligned with that direction.
+   When I move, I leave my previous square clear and occupy the destination square.
+   I can only push a stone toward a goal square if I am the player, the object is a stone, I stand directly behind the stone in the chosen direction, the target square is clear, that target square is marked as a goal, and both adjacency relations match the direction of push.
+   After pushing a stone toward a goal square, I advance into the stone's former square, the stone moves into the goal square, the goal square is no longer clear, my previous square becomes clear, and the stone is marked as being on a goal square.
+   I can only push a stone toward a non-goal square if I am the player, the object is a stone, I stand behind the stone in the direction of push, the destination square is clear, that destination square is marked as a normal square, and the adjacency relations match the direction of push.
+   After pushing a stone toward a non-goal square, I move into the stone's former square, the stone shifts forward, the destination square is no longer clear, and my previous square becomes clear while the stone is marked as not being on a goal square.
+
+;; Action Heads
+move             (?p - thing ?from - location ?to - location ?dir - direction)
+push-to-goal     (?p - thing ?s - thing ?ppos - location ?from - location ?to - location ?dir - direction)
+push-to-nongoal  (?p - thing ?s - thing ?ppos - location ?from - location ?to - location ?dir - direction)

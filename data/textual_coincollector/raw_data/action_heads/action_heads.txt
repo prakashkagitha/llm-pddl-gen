@@ -1,0 +1,3 @@
+(move room1 room2 direction)
+(open room1 room2 direction reverse)
+(take item room)

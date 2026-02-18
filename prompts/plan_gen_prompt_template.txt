@@ -1,0 +1,8 @@
+{{plan_instruction}}
+
+### Domain description
+{{domain_description}}
+
+### Problem description
+{{problem_description}}
+Generate the plan for this instance following the required format.

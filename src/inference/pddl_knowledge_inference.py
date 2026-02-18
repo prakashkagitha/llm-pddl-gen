@@ -19,5 +19,5 @@ class PDDLKnowledgeInference(BaseInference):
             + "Domain description:\n" + dom + "\n\nProblem description:\n" + prob
             + "Write the domain and problem files in minimal PDDL."
             + "\n\nWrap PDDL domain file inside <domain_file>…</domain_file> and PDDL problem file inside "
-            "<problem_file>…</problem_file>.\n<think>"
+            "<problem_file>…</problem_file>."
         )

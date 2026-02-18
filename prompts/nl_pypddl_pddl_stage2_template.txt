@@ -1,0 +1,14 @@
+{{pypddl_instruction}}
+
+Use the planning specification below to write PyPDDL domain and problem definitions.
+
+### Original domain description
+{{domain_description}}
+
+### Original problem description
+{{problem_description}}
+
+### Natural-language planning specification
+{{nl_summary}}
+
+Wrap the domain code inside <domain_file>...</domain_file> and the problem code inside <problem_file>...</problem_file>.
